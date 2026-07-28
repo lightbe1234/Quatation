@@ -8,18 +8,35 @@ function normalizeMsalCache(cache: string) {
   }
 
   for (const account of Object.values(parsed.Account ?? {})) {
-    if (typeof account.tenantProfiles !== 'string') {
+    const { tenantProfiles } = account
+
+    if (tenantProfiles === undefined) {
       continue
     }
 
-    try {
-      const tenantProfile = JSON.parse(account.tenantProfiles)
-      account.tenantProfiles = Array.isArray(tenantProfile)
-        ? tenantProfile
-        : [tenantProfile]
-    } catch {
-      account.tenantProfiles = []
+    if (Array.isArray(tenantProfiles)) {
+      account.tenantProfiles = tenantProfiles.map((profile) =>
+        typeof profile === 'string' ? profile : JSON.stringify(profile),
+      )
+      continue
     }
+
+    if (typeof tenantProfiles === 'string') {
+      try {
+        const parsedProfiles = JSON.parse(tenantProfiles)
+
+        account.tenantProfiles = Array.isArray(parsedProfiles)
+          ? parsedProfiles.map((profile) =>
+              typeof profile === 'string' ? profile : JSON.stringify(profile),
+            )
+          : [JSON.stringify(parsedProfiles)]
+      } catch {
+        account.tenantProfiles = [tenantProfiles]
+      }
+      continue
+    }
+
+    account.tenantProfiles = [JSON.stringify(tenantProfiles)]
   }
 
   return JSON.stringify(parsed)
