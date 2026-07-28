@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bms-blue: #1b4f8c;
+  --font-sans: "Inter", "Segoe UI", sans-serif;
+}
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply m-0 min-w-80 bg-slate-50 font-sans antialiased;
+    background-image:
+      linear-gradient(rgb(255 255 255 / 90%), rgb(248 250 252 / 92%)),
+      linear-gradient(135deg, rgb(248 250 252), rgb(241 245 249));
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bms-blue;
+  }
+
+  ::selection {
+    @apply bg-blue-200 text-slate-950;
+  }
+}
