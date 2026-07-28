@@ -844,6 +844,9 @@ export class MicrosoftOneDriveService implements OneDriveService {
     )
 
     await this.runGraphBatch([
+      this.batchPatch(resetRangePath, sessionId, {
+        rowHidden: false,
+      }),
       this.batchPatch(`${resetRangePath}/format`, sessionId, {
           verticalAlignment: 'Center',
       }),
@@ -945,6 +948,9 @@ export class MicrosoftOneDriveService implements OneDriveService {
       layout.totalRange,
     )
     await this.runGraphBatch([
+      this.batchPatch(totalRangePath, sessionId, {
+        rowHidden: false,
+      }),
       this.batchPatch(`${totalRangePath}/format`, sessionId, {
           horizontalAlignment: 'General',
           verticalAlignment: 'Bottom',
@@ -969,6 +975,30 @@ export class MicrosoftOneDriveService implements OneDriveService {
       'Thin',
       sessionId,
     )
+
+    await this.graphClient.request<void>(
+      `${totalRangePath}/format/autofitRows`,
+      {
+        method: 'POST',
+        headers: this.sessionHeaders(sessionId),
+        body: JSON.stringify({}),
+      },
+    )
+
+    if (layout.unusedRange) {
+      await this.graphClient.request<void>(
+        this.rangePath(
+          connection,
+          quotationWorksheet,
+          layout.unusedRange,
+        ),
+        {
+          method: 'PATCH',
+          headers: this.sessionHeaders(sessionId),
+          body: JSON.stringify({ rowHidden: true }),
+        },
+      )
+    }
   }
 
   private async setQuotationBorders(
