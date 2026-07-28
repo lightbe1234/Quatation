@@ -32,8 +32,8 @@ import {
 } from './visibilityJournal.js'
 import {
   waitForExpectedRange,
+  rangeValuesMatch,
 } from './graphWriteVerification.js'
-import { findQuotationWriteMismatch } from './quotationWriteVerification.js'
 import {
   buildQuotationItemRowFormatting,
   buildQuotationTableLayout,
@@ -804,28 +804,49 @@ export class MicrosoftOneDriveService implements OneDriveService {
       )
     }
 
-    let mismatchedAddress: string | undefined
-    for (let attempt = 1; attempt <= 6; attempt += 1) {
-      const actual = await this.graphClient.request<RangeValue>(
-        this.rangePath(connection, quotationWorksheet, 'A9:H38'),
-        { headers: this.sessionHeaders(sessionId) },
-      )
-      mismatchedAddress = findQuotationWriteMismatch(
-        writes,
-        actual.values,
+    await this.verifyQuotationWrites(connection, writes, sessionId)
+  }
+
+  private async verifyQuotationWrites(
+    connection: WorkbookConnection,
+    writes: ReturnType<typeof buildQuotationWrites>,
+    sessionId: string,
+  ) {
+    const mismatchedWrites = new Set(writes.map((write) => write.address))
+
+    for (let attempt = 1; attempt <= 8; attempt += 1) {
+      await Promise.all(
+        writes
+          .filter((write) => mismatchedWrites.has(write.address))
+          .map(async (write) => {
+            const actual = await this.graphClient.request<RangeValue>(
+              this.rangePath(
+                connection,
+                quotationWorksheet,
+                write.address,
+              ),
+              { headers: this.sessionHeaders(sessionId) },
+            )
+
+            if (rangeValuesMatch(write.values, actual.values)) {
+              mismatchedWrites.delete(write.address)
+            }
+          }),
       )
 
-      if (!mismatchedAddress) {
+      if (mismatchedWrites.size === 0) {
         return
       }
 
-      if (attempt < 6) {
+      if (attempt < 8) {
         await delay(250 * attempt)
       }
     }
 
     throw new AppError(
-      `Excel did not verify the quotation range ${mismatchedAddress}`,
+      `Excel did not verify the quotation range ${
+        [...mismatchedWrites][0]
+      }`,
       502,
     )
   }
