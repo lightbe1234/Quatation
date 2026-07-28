@@ -16,7 +16,23 @@ export type WorkbookConnection = {
   connectedAt: string
 }
 
-async function readConnection(path: string) {
+function readEnvConnection(name: string) {
+  const value = process.env[name]
+
+  if (!value) {
+    return undefined
+  }
+
+  return JSON.parse(value) as WorkbookConnection
+}
+
+async function readConnection(path: string, envName: string) {
+  const envConnection = readEnvConnection(envName)
+
+  if (envConnection) {
+    return envConnection
+  }
+
   try {
     return JSON.parse(
       await readFile(path, 'utf8'),
@@ -44,7 +60,10 @@ async function saveConnection(
 }
 
 export function readWorkbookConnection() {
-  return readConnection(settingsPath)
+  return readConnection(
+    settingsPath,
+    'ONEDRIVE_WORKBOOK_CONNECTION_JSON',
+  )
 }
 
 export function saveWorkbookConnection(connection: WorkbookConnection) {
@@ -52,7 +71,10 @@ export function saveWorkbookConnection(connection: WorkbookConnection) {
 }
 
 export function readPdfWorkbookConnection() {
-  return readConnection(pdfSettingsPath)
+  return readConnection(
+    pdfSettingsPath,
+    'ONEDRIVE_PDF_WORKBOOK_CONNECTION_JSON',
+  )
 }
 
 export function savePdfWorkbookConnection(
