@@ -40,7 +40,7 @@ export function ActualQuotationPreview({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 px-6 py-5">
+      <div className="border-b border-slate-200 px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-bms-blue">
@@ -77,7 +77,7 @@ export function ActualQuotationPreview({
       {isGenerating ? (
         <div
           aria-live="polite"
-          className="flex min-h-[34rem] flex-col items-center justify-center gap-4 bg-slate-50 px-8 py-14 text-center"
+          className="flex min-h-80 flex-col items-center justify-center gap-4 bg-slate-50 px-6 py-10 text-center"
         >
           <span className="flex size-14 items-center justify-center rounded-full bg-blue-100 text-bms-blue">
             <LoadingSpinner className="size-7" />
@@ -107,7 +107,7 @@ export function ActualQuotationPreview({
         />
       )}
 
-      <p className="border-t border-slate-200 bg-white px-6 py-4 text-xs leading-5 text-slate-500">
+      <p className="border-t border-slate-200 bg-white px-5 py-3 text-xs leading-5 text-slate-500">
         This panel displays the workbook-rendered PDF, not an HTML
         approximation. Excel is changed only after your confirmation.
       </p>

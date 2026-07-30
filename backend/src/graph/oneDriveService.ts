@@ -3,12 +3,18 @@ import { MicrosoftAuthService } from '../auth/microsoftAuthService.js'
 import type { SavedQuotation } from '../types/quotation.js'
 import type { Store } from '../types/store.js'
 import {
+  clearPdfWorkbookConnection,
   readPdfWorkbookConnection,
   readWorkbookConnection,
   savePdfWorkbookConnection,
   saveWorkbookConnection,
   type WorkbookConnection,
 } from './connectionStore.js'
+import {
+  mainWorkbookName,
+  pdfWorkbookName,
+  refreshPdfTemplateFlow,
+} from './pdfTemplateRefresh.js'
 import {
   GraphClient,
   type GraphBatchRequest,
@@ -53,9 +59,6 @@ import {
   type RecordKind,
   type WorkbookRecordGrid,
 } from './recordGrid.js'
-
-const workbookName = 'Web app.xlsx'
-const pdfWorkbookName = 'Web app PDF Export.xlsx'
 
 type SearchResponse = {
   value: Array<{
@@ -133,6 +136,10 @@ export interface OneDriveService {
   createAuthorizationUrl(): Promise<string>
   completeAuthorization(code: string, state: string): Promise<void>
   getStatus(): Promise<OneDriveStatus>
+  refreshPdfTemplate(): Promise<{
+    name: string
+    refreshedAt: string
+  }>
   inspectSafeTestCell(): Promise<TestCellCandidate>
   runTestCell(
     worksheet: string,
@@ -212,6 +219,28 @@ export class MicrosoftOneDriveService implements OneDriveService {
           }
         : undefined,
     }
+  }
+
+  refreshPdfTemplate() {
+    return refreshPdfTemplateFlow({
+      cacheMainWorkbook: saveWorkbookConnection,
+      cachePdfWorkbook: savePdfWorkbookConnection,
+      clearCachedPdfWorkbook: clearPdfWorkbookConnection,
+      createPdfWorkbook: (mainConnection) =>
+        this.createPdfWorkbook(mainConnection),
+      findMainWorkbook: () =>
+        this.findWorkbookConnectionByName(mainWorkbookName),
+      findPdfWorkbook: () =>
+        this.findWorkbookConnectionByName(pdfWorkbookName),
+      now: () => new Date(),
+      preparePdfWorkbook: (connection) =>
+        this.preparePdfWorkbook(connection),
+      replacePdfWorkbookContents: (mainConnection, pdfConnection) =>
+        this.replacePdfWorkbookContents(
+          mainConnection,
+          pdfConnection,
+        ),
+    })
   }
 
   async inspectSafeTestCell() {
@@ -504,11 +533,11 @@ export class MicrosoftOneDriveService implements OneDriveService {
   }
 
   private async discoverWorkbook() {
-    const match = await this.findWorkbookByName(workbookName)
+    const match = await this.findWorkbookByName(mainWorkbookName)
 
     if (!match) {
       throw new AppError(
-        `Could not find ${workbookName} in the connected OneDrive`,
+        `Could not find ${mainWorkbookName} in the connected OneDrive`,
         404,
       )
     }
@@ -546,7 +575,7 @@ export class MicrosoftOneDriveService implements OneDriveService {
       return undefined
     }
 
-    if (exactMatches.length > 1 && name === workbookName) {
+    if (exactMatches.length > 1 && name === mainWorkbookName) {
       throw new AppError(
         `Found multiple files named ${name}; keep one exact copy before reconnecting`,
         409,
@@ -558,6 +587,19 @@ export class MicrosoftOneDriveService implements OneDriveService {
         String(first.lastModifiedDateTime ?? ''),
       ),
     )[0]
+  }
+
+  private async findWorkbookConnectionByName(name: string) {
+    const match = await this.findWorkbookByName(name)
+
+    return match
+      ? {
+          driveItemId: match.id,
+          name: match.name,
+          webUrl: match.webUrl ?? null,
+          connectedAt: new Date().toISOString(),
+        }
+      : undefined
   }
 
   private async requirePdfWorkbookConnection(
@@ -654,22 +696,34 @@ export class MicrosoftOneDriveService implements OneDriveService {
     }
   }
 
+  private async replacePdfWorkbookContents(
+    mainConnection: WorkbookConnection,
+    pdfConnection: WorkbookConnection,
+  ) {
+    const workbook = await this.graphClient.requestBinary(
+      `/me/drive/items/${mainConnection.driveItemId}/content`,
+    )
+
+    await this.graphClient.requestResponse(
+      `/me/drive/items/${pdfConnection.driveItemId}/content`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: workbook,
+      },
+    )
+  }
+
   private async waitForCopyCompletion(monitorUrl: string) {
     for (let attempt = 1; attempt <= 30; attempt += 1) {
-      const response = await fetch(monitorUrl)
+      const response = await this.graphClient.requestPublicResponse(
+        monitorUrl,
+      )
       const status = (await response.json().catch(() => ({}))) as
         CopyMonitorStatus
 
       if (status.status === 'completed') {
         return
-      }
-
-      if (!response.ok) {
-        throw new AppError(
-          status.error?.message ??
-            `OneDrive copy monitor failed with status ${response.status}`,
-          502,
-        )
       }
 
       if (status.status === 'failed') {

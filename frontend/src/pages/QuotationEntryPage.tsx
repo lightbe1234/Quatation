@@ -18,6 +18,7 @@ import {
   type SummaryGrid,
 } from '../api/oneDrive'
 import { listStores } from '../api/stores'
+import { listQuotationFieldOptions } from '../api/settings'
 import { calculateGrandTotal } from '../calculations/quotationTotals'
 import { ActualQuotationPreview } from '../components/ActualQuotationPreview'
 import {
@@ -44,37 +45,20 @@ import type {
   SavedQuotation,
 } from '../types/quotation'
 import type { Store } from '../types/store'
+import type {
+  QuotationFieldKey,
+  QuotationFieldOption,
+} from '../types/settings'
+import {
+  createEmptyQuotationDraft,
+  createEmptyQuotationLine,
+} from './quotationDraft'
 
-function localDate() {
-  const date = new Date()
-  const offset = date.getTimezoneOffset()
-  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10)
-}
-
-function emptyLine(): QuotationLineDraft {
-  return {
-    id: crypto.randomUUID(),
-    description: '',
-    qty: '1',
-    unitPrice: '',
-  }
-}
-
-export function createEmptyQuotationDraft(): QuotationDraft {
-  return {
-    qtnNo: '',
-    jobNo: '',
-    quoteDate: localDate(),
-    unit: '',
-    clientName: '',
-    region: '',
-    storeId: '',
-    subject: '',
-    introLine1: '',
-    introLine2: '',
-    items: [emptyLine()],
-  }
-}
+const requiredOptionKeys: QuotationFieldKey[] = [
+  'qtn_no',
+  'client_name',
+  'region',
+]
 
 type QuotationEntryPageProps = {
   persistedDraft?: QuotationDraft
@@ -183,11 +167,13 @@ export function QuotationEntryPage({
   const draft = persistedDraft ?? localDraft
   const setDraft = setPersistedDraft ?? setLocalDraft
   const [stores, setStores] = useState<Store[]>([])
+  const [fieldOptions, setFieldOptions] = useState<QuotationFieldOption[]>([])
   const [recentQuotations, setRecentQuotations] = useState<
     RecentQuotation[]
   >([])
   const [savedQuotation, setSavedQuotation] = useState<SavedQuotation>()
   const [isLoadingStores, setIsLoadingStores] = useState(true)
+  const [isLoadingFieldOptions, setIsLoadingFieldOptions] = useState(true)
   const [isLoadingRecent, setIsLoadingRecent] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
@@ -202,6 +188,7 @@ export function QuotationEntryPage({
   const [transferStatus, setTransferStatus] = useState<string>()
   const [recentTransferId, setRecentTransferId] = useState<string>()
   const [error, setError] = useState<string>()
+  const [fieldOptionsError, setFieldOptionsError] = useState<string>()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -214,6 +201,24 @@ export function QuotationEntryPage({
         }
       })
       .finally(() => setIsLoadingStores(false))
+
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    listQuotationFieldOptions(controller.signal)
+      .then((loadedOptions) => {
+        setFieldOptions(loadedOptions)
+        setFieldOptionsError(undefined)
+      })
+      .catch((requestError: Error) => {
+        if (requestError.name !== 'AbortError') {
+          setFieldOptionsError(requestError.message)
+        }
+      })
+      .finally(() => setIsLoadingFieldOptions(false))
 
     return () => controller.abort()
   }, [])
@@ -248,6 +253,13 @@ export function QuotationEntryPage({
     [draft.items],
   )
   const isLocked = Boolean(savedQuotation)
+  const hasMissingRequiredOptions =
+    !isLoadingFieldOptions &&
+    !fieldOptionsError &&
+    requiredOptionKeys.some(
+      (fieldKey) =>
+        !fieldOptions.some((option) => option.fieldKey === fieldKey),
+    )
 
   useEffect(() => {
     if (error) {
@@ -265,7 +277,7 @@ export function QuotationEntryPage({
     ) => {
       setDraft((current) => ({ ...current, [field]: value }))
     },
-    [],
+    [setDraft],
   )
 
   const updateItem = useCallback(
@@ -281,7 +293,7 @@ export function QuotationEntryPage({
         ),
       }))
     },
-    [],
+    [setDraft],
   )
 
   const handleAddLine = useCallback(() => {
@@ -289,10 +301,10 @@ export function QuotationEntryPage({
       ...current,
       items:
         current.items.length < 12
-          ? [...current.items, emptyLine()]
+          ? [...current.items, createEmptyQuotationLine()]
           : current.items,
     }))
-  }, [])
+  }, [setDraft])
 
   const handleRemoveLine = useCallback((id: string) => {
     setDraft((current) => ({
@@ -302,10 +314,21 @@ export function QuotationEntryPage({
           ? current.items.filter((item) => item.id !== id)
           : current.items,
     }))
-  }, [])
+  }, [setDraft])
 
   async function handleSubmit() {
     setError(undefined)
+
+    if (
+      isLoadingFieldOptions ||
+      fieldOptionsError ||
+      hasMissingRequiredOptions
+    ) {
+      setError(
+        'Configure QTN #, Client Name, and Region options in Settings before saving a quotation.',
+      )
+      return
+    }
 
     if (
       !draft.storeId ||
@@ -588,7 +611,7 @@ export function QuotationEntryPage({
   )
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         description="Complete the form and save a Supabase draft. After confirmation, Generate PDF writes Excel and shows the actual workbook-rendered quotation."
         eyebrow="Quotation entry"
@@ -604,6 +627,12 @@ export function QuotationEntryPage({
         <StatusMessage tone="info">
           <span className="size-2 animate-pulse rounded-full bg-bms-blue" />
           Loading stores...
+        </StatusMessage>
+      )}
+
+      {fieldOptionsError && (
+        <StatusMessage tone="error">
+          Quotation dropdown options could not be loaded: {fieldOptionsError}
         </StatusMessage>
       )}
 
@@ -645,10 +674,10 @@ export function QuotationEntryPage({
             No generated quotations are waiting for Financial transfer.
           </p>
         ) : (
-          <div className="mt-5 divide-y divide-slate-200 rounded-xl border border-slate-200">
+          <div className="mt-4 divide-y divide-slate-200 rounded-xl border border-slate-200">
             {pendingFinancialTransfers.map((quotation) => (
               <div
-                className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                 key={quotation.id}
               >
                 <div>
@@ -711,7 +740,7 @@ export function QuotationEntryPage({
         main={
           <>
           <Card>
-            <div className="mb-6">
+          <div className="mb-5">
               <h3 className="text-lg font-semibold text-slate-950">
                 Quotation details
               </h3>
@@ -722,6 +751,9 @@ export function QuotationEntryPage({
             <QuotationDetailsForm
               disabled={isLocked || isLoadingStores}
               draft={draft}
+              fieldOptions={fieldOptions}
+              fieldOptionsError={fieldOptionsError}
+              isLoadingFieldOptions={isLoadingFieldOptions}
               onChange={updateDetail}
               selectedStore={selectedStore}
               stores={stores}
@@ -748,14 +780,14 @@ export function QuotationEntryPage({
           >
             <div
               aria-busy={isSaving || isGeneratingPdf || isTransferring}
-              className="space-y-5"
+              className="space-y-4"
             >
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Quotation total
                 </p>
-                <p className="mt-1 text-3xl font-black tabular-nums tracking-tight text-slate-950">
+                <p className="mt-1 text-2xl font-black tabular-nums tracking-tight text-slate-950">
                   {grandTotal.toFixed(2)}
                 </p>
               </div>
@@ -763,9 +795,16 @@ export function QuotationEntryPage({
                 {draft.items.length}/12 lines
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+            <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
               <Button
-                disabled={isSaving || isLocked || isLoadingStores}
+                disabled={
+                  isSaving ||
+                  isLocked ||
+                  isLoadingStores ||
+                  isLoadingFieldOptions ||
+                  Boolean(fieldOptionsError) ||
+                  hasMissingRequiredOptions
+                }
                 onClick={handleSubmit}
                 type="button"
               >
@@ -821,7 +860,7 @@ export function QuotationEntryPage({
               </Button>
             </div>
             {!savedQuotation && !selectedStore && (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-medium text-amber-800">
                 Before saving, select a Branch above. Branch ID and Contact
                 must appear instead of hyphens.
               </p>

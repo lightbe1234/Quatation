@@ -15,7 +15,7 @@ type QuotationLineItemsProps = {
 }
 
 const numberInputClassName =
-  'w-24 rounded-lg border border-slate-300 px-3 py-2 text-right text-sm outline-none focus:border-bms-blue focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100'
+  'h-10 w-24 rounded-lg border border-slate-300 px-3 py-2 text-right text-sm outline-none focus:border-bms-blue focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100'
 
 export const QuotationLineItems = memo(function QuotationLineItems({
   disabled,
@@ -26,7 +26,7 @@ export const QuotationLineItems = memo(function QuotationLineItems({
 }: QuotationLineItemsProps) {
   return (
     <div>
-      <div className="mb-4 flex items-end justify-between gap-4">
+      <div className="mb-4 flex items-end justify-between gap-3">
         <div>
           <h3 className="font-semibold text-slate-950">Line items</h3>
           <p className="mt-1 text-sm text-slate-500">
@@ -66,7 +66,7 @@ export const QuotationLineItems = memo(function QuotationLineItems({
             <label className="block text-sm font-medium text-slate-700">
               Description <span className="text-red-600">*</span>
               <textarea
-                className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-bms-blue focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-bms-blue focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
                 disabled={disabled}
                 maxLength={500}
                 onChange={(event) =>
@@ -78,7 +78,7 @@ export const QuotationLineItems = memo(function QuotationLineItems({
               />
             </label>
 
-            <div className="mt-4 flex flex-wrap items-end gap-4">
+            <div className="mt-3 flex flex-wrap items-end gap-3">
               <label className="text-sm font-medium text-slate-700">
                 Qty
                 <input

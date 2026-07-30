@@ -51,7 +51,7 @@ export function QuotationWorkflowProgress({
         return (
           <li
             aria-current={isCurrent ? 'step' : undefined}
-            className={`relative flex min-h-20 items-center gap-3 border-b border-slate-200 px-4 py-4 last:border-b-0 sm:border-r sm:border-b-0 sm:last:border-r-0 ${
+            className={`relative flex min-h-16 items-center gap-3 border-b border-slate-200 px-4 py-3 last:border-b-0 sm:border-r sm:border-b-0 sm:last:border-r-0 ${
               isCurrent ? 'bg-blue-50/70' : ''
             }`}
             key={step.label}

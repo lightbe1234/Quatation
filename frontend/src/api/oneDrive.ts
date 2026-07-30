@@ -21,10 +21,12 @@ export type SummaryGrid = {
   worksheet: 'summry'
 }
 
+import { authenticatedFetch } from './authenticatedFetch'
+
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 
 async function request<T>(path: string, options?: RequestInit) {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await authenticatedFetch(`${apiBaseUrl}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -44,6 +46,16 @@ async function request<T>(path: string, options?: RequestInit) {
 
 export function getOneDriveStatus() {
   return request<OneDriveStatus>('/api/onedrive/status')
+}
+
+export async function refreshPdfTemplate() {
+  const result = await request<{
+    result: { name: string; refreshedAt: string }
+  }>('/api/onedrive/refresh-pdf-template', {
+    method: 'POST',
+    body: JSON.stringify({ confirmed: true }),
+  })
+  return result.result
 }
 
 export async function inspectTestCell() {
@@ -76,7 +88,7 @@ export async function getSummaryGrid() {
 }
 
 export async function downloadSummaryWorkbook() {
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${apiBaseUrl}/api/onedrive/summary-workbook`,
   )
 

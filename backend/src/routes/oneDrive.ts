@@ -1,10 +1,13 @@
-import { Router } from 'express'
+import { Router, type RequestHandler } from 'express'
 import { env } from '../config/env.js'
 import { AppError } from '../errors/appError.js'
 import type { OneDriveService } from '../graph/oneDriveService.js'
 import { buildSummaryWorkbook } from '../graph/summaryWorkbook.js'
 
-export function createOneDriveRouter(service: OneDriveService) {
+export function createOneDriveRouter(
+  service: OneDriveService,
+  authenticate: RequestHandler,
+) {
   const router = Router()
 
   router.get('/connect-onedrive', async (_request, response) => {
@@ -38,16 +41,42 @@ export function createOneDriveRouter(service: OneDriveService) {
     response.redirect(`${env.frontendUrl}/onedrive?connected=1`)
   })
 
-  router.get('/api/onedrive/status', async (_request, response) => {
-    response.json(await service.getStatus())
-  })
+  router.get(
+    '/api/onedrive/status',
+    authenticate,
+    async (_request, response) => {
+      response.json(await service.getStatus())
+    },
+  )
 
-  router.get('/api/onedrive/summary-grid', async (_request, response) => {
-    response.json({ grid: await service.getSummaryGrid() })
-  })
+  router.post(
+    '/api/onedrive/refresh-pdf-template',
+    authenticate,
+    async (request, response) => {
+      if (request.body?.confirmed !== true) {
+        throw new AppError(
+          'PDF workbook refresh confirmation is required',
+          400,
+        )
+      }
+
+      response.json({
+        result: await service.refreshPdfTemplate(),
+      })
+    },
+  )
+
+  router.get(
+    '/api/onedrive/summary-grid',
+    authenticate,
+    async (_request, response) => {
+      response.json({ grid: await service.getSummaryGrid() })
+    },
+  )
 
   router.get(
     '/api/onedrive/summary-workbook',
+    authenticate,
     async (_request, response) => {
       const workbook = await buildSummaryWorkbook(
         await service.getSummaryGrid(),
@@ -68,30 +97,38 @@ export function createOneDriveRouter(service: OneDriveService) {
 
   router.post(
     '/api/onedrive/inspect-test-cell',
+    authenticate,
     async (_request, response) => {
       response.json({ candidate: await service.inspectSafeTestCell() })
     },
   )
 
-  router.post('/api/onedrive/test-cell', async (request, response) => {
-    if (request.body?.confirmed !== true) {
-      throw new AppError('Test-cell write confirmation is required', 400)
-    }
+  router.post(
+    '/api/onedrive/test-cell',
+    authenticate,
+    async (request, response) => {
+      if (request.body?.confirmed !== true) {
+        throw new AppError('Test-cell write confirmation is required', 400)
+      }
 
-    if (
-      typeof request.body.worksheet !== 'string' ||
-      typeof request.body.address !== 'string'
-    ) {
-      throw new AppError('Worksheet and test-cell address are required', 400)
-    }
+      if (
+        typeof request.body.worksheet !== 'string' ||
+        typeof request.body.address !== 'string'
+      ) {
+        throw new AppError(
+          'Worksheet and test-cell address are required',
+          400,
+        )
+      }
 
-    response.json({
-      result: await service.runTestCell(
-        request.body.worksheet,
-        request.body.address,
-      ),
-    })
-  })
+      response.json({
+        result: await service.runTestCell(
+          request.body.worksheet,
+          request.body.address,
+        ),
+      })
+    },
+  )
 
   return router
 }

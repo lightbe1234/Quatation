@@ -264,107 +264,280 @@ Supabase table `stores`:
 ## 11. Upgrade Addendum (read after Sections 1–10 — this adds new features and fixes; nothing above is removed or replaced)
 
 ### 11.1 Bug fix required first: PDF generation error
-- Users currently get an error when clicking "Generate PDF" (Section 5.2 flow). Before building 
-  anything new below, the agent must investigate and fix this. Isolate the PDF generation code 
-  path only — do not modify unrelated working code while fixing it. Confirm with a real 
+- Users currently get an error when clicking "Generate PDF" (Section 5.2 flow). Before building
+  anything new below, the agent must investigate and fix this. Isolate the PDF generation code
+  path only — do not modify unrelated working code while fixing it. Confirm with a real
   end-to-end test (actual PDF generated successfully) before moving to the next item.
 
 ### 11.2 New: Quotation Summary Preview + Copy (on the "New Quotation" page)
-- Add a new small panel directly ABOVE the existing Excel-style live preview panel on the New 
+- Add a new small panel directly ABOVE the existing Excel-style live preview panel on the New
   Quotation page.
-- Show a single-row table with the exact same columns as the `summry` tab: SNO, QUOTATION REF, 
-  OUTLET NAME, AMOUNT, SCOPE OF WORK, JOB STATUS, HD NO, APPROVAL — populated live from the 
+- Show a single-row table with the exact same columns as the `summry` tab: SNO, QUOTATION REF,
+  OUTLET NAME, AMOUNT, SCOPE OF WORK, JOB STATUS, HD NO, APPROVAL — populated live from the
   quotation currently being built (values computed exactly as already defined in Section 4.2).
-- Include a "Copy" button that reuses the SAME copy-to-clipboard logic already implemented in the 
-  existing Summary Worksheet / OneDrive overview screen (the one that copies the exact cell range 
-  so it pastes cleanly into Excel/Google Sheets without breaking formatting) — reuse that 
+- Include a "Copy" button that reuses the SAME copy-to-clipboard logic already implemented in the
+  existing Summary Worksheet / OneDrive overview screen (the one that copies the exact cell range
+  so it pastes cleanly into Excel/Google Sheets without breaking formatting) — reuse that
   component/logic, do not reimplement it from scratch.
-- This is a manual-copy convenience only. It does NOT replace the existing automatic 
+- This is a manual-copy convenience only. It does NOT replace the existing automatic
   "Generate PDF → append to summry tab" flow from Section 5.2 — both features coexist.
 
 ### 11.3 New: "Records" page (new top-nav item)
 Add a new page linked from the top navigation as "Records", with two clearly separated sections:
 
-**Summary Records** — an editable table of all rows currently in the `summry` Excel tab (same 
+**Summary Records** — an editable table of all rows currently in the `summry` Excel tab (same
 columns as Section 4.2).
 
-**Financial Records** — an editable table of all rows currently in the `financial` Excel tab 
+**Financial Records** — an editable table of all rows currently in the `financial` Excel tab
 (same columns as Section 4.3).
 
 Both sections must support, per row:
 - **Edit** — inline or modal edit of any field
-- **Update** — save the edited row back to the exact corresponding row in the LIVE Excel workbook 
+- **Update** — save the edited row back to the exact corresponding row in the LIVE Excel workbook
   via Graph API (not just the app's local Supabase copy)
 - **Delete** — remove the row from the table and clear/delete the corresponding row in Excel
 
-**Important distinction:** the "never silently overwrite manually-edited columns" rule in 
-Sections 4.2/4.3 applies only to the automatic quotation-creation flow. It does NOT apply to this 
-Records page — this page is an intentional, explicit editing interface, so writes here are 
+**Important distinction:** the "never silently overwrite manually-edited columns" rule in
+Sections 4.2/4.3 applies only to the automatic quotation-creation flow. It does NOT apply to this
+Records page — this page is an intentional, explicit editing interface, so writes here are
 expected and desired.
 
-Reuse the existing "inspect before writing" safety pattern (the read-only cell-check step already 
-built elsewhere in the app) as a model for validating these writes before sending them to the 
+Reuse the existing "inspect before writing" safety pattern (the read-only cell-check step already
+built elsewhere in the app) as a model for validating these writes before sending them to the
 Graph API, so the sheet can't get corrupted.
 
 ### 11.4 General stability requirement
-- Before marking 11.1–11.3 complete, do a full review pass over the affected code (PDF generation, 
-  summary preview, Records CRUD) and add proper error handling so any failure (Graph API timeout, 
+- Before marking 11.1–11.3 complete, do a full review pass over the affected code (PDF generation,
+  summary preview, Records CRUD) and add proper error handling so any failure (Graph API timeout,
   bad cell value, etc.) shows a clear error message in the UI instead of crashing the app.
-- Do not refactor or touch any other currently-working feature while doing this — scope strictly 
+- Do not refactor or touch any other currently-working feature while doing this — scope strictly
   to this section.
 
   ## 12. Second Upgrade Addendum — Simplification & Performance Fix
-(read after Section 11 — this REMOVES some of Section 11's scope and fixes performance; 
+(read after Section 11 — this REMOVES some of Section 11's scope and fixes performance;
 Sections 1–10 remain fully unchanged)
 
 ### 12.1 REMOVE: "Records" page entirely (undo Section 11.3)
-- Remove the "Records" top-nav item and its page completely (both the Summary Records and 
+- Remove the "Records" top-nav item and its page completely (both the Summary Records and
   Financial Records editable tables, and all their edit/update/delete-to-Excel logic).
-- Also remove any "Financial" section that was added to the Overview/OneDrive page as a 
-  counterpart to the existing "Summary Worksheet" section — only the Summary Worksheet 
+- Also remove any "Financial" section that was added to the Overview/OneDrive page as a
+  counterpart to the existing "Summary Worksheet" section — only the Summary Worksheet
   read-only copy panel (Section 12.3 below) should remain on that page.
-- Reason: this manual-editing surface is not needed. The `financial` tab continues to work 
-  exactly as originally specified in Section 4.3 — written to automatically (append-only) when 
+- Reason: this manual-editing surface is not needed. The `financial` tab continues to work
+  exactly as originally specified in Section 4.3 — written to automatically (append-only) when
   "Transfer to Financial" is clicked — with no separate UI for editing existing rows.
 
 ### 12.2 FIX: New Quotation page's Summary Preview panel is broken
-- The current "Summary Preview — Copy-ready summry row" panel on the New Quotation page shows a 
-  hardcoded/static empty table (placeholder cells, "0.00", no real data) — remove this entire 
+- The current "Summary Preview — Copy-ready summry row" panel on the New Quotation page shows a
+  hardcoded/static empty table (placeholder cells, "0.00", no real data) — remove this entire
   panel/component from the New Quotation page.
 - Replace it with:
-  1. While "Generate PDF" is processing, show a simple loading indicator (e.g. "Generating 
+  1. While "Generate PDF" is processing, show a simple loading indicator (e.g. "Generating
      summary…") — no table, no preview.
-  2. Once Generate PDF completes successfully (PDF created + row appended to the `summry` tab, 
+  2. Once Generate PDF completes successfully (PDF created + row appended to the `summry` tab,
      per Section 5.2), show a single **"Copy"** button — no visible preview table needed.
-  3. Clicking Copy must copy the actual real data of the row that was just written to the 
-     `summry` tab (not placeholder values), using the exact same copy-to-clipboard logic/component 
-     already built for the "Summary Worksheet — Select and copy workbook cells" panel on the 
-     Overview page (Section 12.3) — reuse that logic directly, do not reimplement a second copy 
+  3. Clicking Copy must copy the actual real data of the row that was just written to the
+     `summry` tab (not placeholder values), using the exact same copy-to-clipboard logic/component
+     already built for the "Summary Worksheet — Select and copy workbook cells" panel on the
+     Overview page (Section 12.3) — reuse that logic directly, do not reimplement a second copy
      mechanism.
-- **Critical rule:** this Copy button is a read/copy convenience only. It must never append, 
-  create, or write an additional new row to the `summry` tab. The only place a new `summry` row 
-  gets created is the existing automatic step in Section 5.2 (one row per Generate PDF click). 
+- **Critical rule:** this Copy button is a read/copy convenience only. It must never append,
+  create, or write an additional new row to the `summry` tab. The only place a new `summry` row
+  gets created is the existing automatic step in Section 5.2 (one row per Generate PDF click).
   The web app must not create a second/duplicate summary row from this panel.
 
 ### 12.3 Keep as-is: Overview page's "Summary Worksheet" panel
-- The existing read-only panel that shows the full `summry` tab data and lets the user select 
-  and copy the whole used range (already working, shown as "Summary Worksheet — Select and copy 
-  workbook cells" on the Overview page) stays exactly as it is — no changes needed here, it is 
+- The existing read-only panel that shows the full `summry` tab data and lets the user select
+  and copy the whole used range (already working, shown as "Summary Worksheet — Select and copy
+  workbook cells" on the Overview page) stays exactly as it is — no changes needed here, it is
   the reference implementation that 12.2 should reuse.
 
 ### 12.4 PERFORMANCE FIX: Generate PDF is too slow
-- Generate PDF currently takes significantly longer than acceptable. Target: bring this down to 
-  **10–15 seconds total**, end-to-end (writing cells → formatting → PDF conversion → returning 
+- Generate PDF currently takes significantly longer than acceptable. Target: bring this down to
+  **10–15 seconds total**, end-to-end (writing cells → formatting → PDF conversion → returning
   the file).
 - Investigate likely causes before optimizing blindly:
-  - Are Graph API calls happening sequentially (one at a time, each waiting for the previous) when 
+  - Are Graph API calls happening sequentially (one at a time, each waiting for the previous) when
     some could be batched or run in parallel (e.g. writing multiple cell ranges in fewer requests)?
-  - Is the per-row border/formatting logic (added in Section 11's formatting fix) looping through 
-    all 12 possible rows individually via separate API calls, instead of one batched range 
+  - Is the per-row border/formatting logic (added in Section 11's formatting fix) looping through
+    all 12 possible rows individually via separate API calls, instead of one batched range
     update?
-  - Is there any unnecessary polling, retry delay, or redundant read-before-write check that could 
+  - Is there any unnecessary polling, retry delay, or redundant read-before-write check that could
     be reduced without compromising the "inspect before writing" safety pattern?
-- Fix only genuine bottlenecks — do not remove the safety/inspection checks, just make them more 
+- Fix only genuine bottlenecks — do not remove the safety/inspection checks, just make them more
   efficient (e.g. batch them) where possible.
-- Confirm the fix with a real timed test (start-to-finish Generate PDF click to PDF appearing) 
+- Confirm the fix with a real timed test (start-to-finish Generate PDF click to PDF appearing)
   and report the actual measured time before marking this done.
+
+  ## 13. Third Upgrade Addendum — UI Overhaul, Settings Module, and Pre-Deployment Hardening
+(read after Section 12 — Sections 1–12 remain in effect, including that the Records page exists
+again per user's separate instruction after Section 12.1)
+
+### 13.1 UI Overhaul — all existing modules (visual only, no logic changes)
+Current UI problems to fix across every page (Store, New Quotation, Records, Overview/OneDrive):
+- Input text boxes are oversized — reduce to a compact, standard input size (comfortable but not
+  oversized padding/height) consistent across all forms.
+- Data display sections (especially the Records tables) don't fit their containers properly —
+  columns/rows overflow or are misaligned. Fix table/grid sizing so all data is fully visible and
+  properly contained, with responsive column widths.
+- Overall goal: minimal, clean, user-friendly — reduce visual clutter, tighten spacing
+  consistently, keep the existing white/professional theme and brand accent color (Section 3) —
+  this is a refinement pass, not a redesign of layout structure or navigation.
+- Apply this pass to: Store management, New Quotation (form + previews), Records (both Summary
+  Records and Financial Records tables), Overview/OneDrive page, and the new Settings page
+  (13.2) once built.
+- Do not change any data logic, field mapping, or Excel/Supabase behavior in this step — CSS/UI
+  only.
+
+### 13.2 New: Settings Module (new top-nav page)
+
+**Purpose:** let the admin define reusable dropdown option lists for specific New Quotation
+fields, instead of those fields being free-typed every time.
+
+**Fields that become admin-configurable dropdowns in the New Quotation form:**
+
+| Field | Required? |
+|---|---|
+| QTN # | Required |
+| Job # | Optional |
+| Unit | Optional |
+| Client Name | Required |
+| Region | Required |
+| Intro line 1 | Optional |
+| Intro line 2 | Optional |
+
+> Note: "Client Name" is the field that **already exists** in the New Quotation form today as a
+> manual text input — do not create a new field or guess a new Excel cell for it. Keep it wired
+> to whatever it currently already reads/writes; only change its *input type* (free text →
+> dropdown fed by Settings).
+
+**New Supabase table (write the migration, show it to me, wait for approval per Section 8 — do
+not apply automatically):**
+- A table to store admin-defined option lists, keyed by field (e.g. `field_key` = 'qtn_no' |
+  'job_no' | 'unit' | 'client_name' | 'region' | 'intro_line_1' | 'intro_line_2'), each row being
+  one selectable value, with a sort order and created/updated timestamps.
+
+**Settings page UI:**
+- One section per field above, each showing its current list of values with Add / Edit / Delete
+  controls (simple list management — reuse existing minimal UI style from 13.1).
+
+**New Quotation form changes:**
+- These 7 fields render as dropdown selects populated live from the Settings-configured values
+  for that field, instead of free-text boxes.
+- **[CONFIRM]**: this addendum implements dropdown-only selection (no free-typing alongside the
+  dropdown) since that's what was described. If the admin also wants an "type a custom value"
+  option alongside the dropdown, confirm that separately — don't add it silently.
+- **Edge case to handle explicitly:** if a required field (QTN #, Client Name, Region) has zero
+  options configured yet in Settings, the New Quotation form must show a clear message (e.g.
+  "No QTN # options configured yet — add one in Settings") rather than a broken/empty dropdown or
+  a crash.
+
+### 13.3 Pre-Deployment Full Hardening Pass
+Before any deployment, run a complete pass covering:
+- The full pre-deployment checklist already given earlier in this project (Graph API reliability,
+  data integrity/concurrency, form validation, auth, performance, general resilience) — re-run it
+  fully against the current state of the app, not just historically.
+- **Security/leak check:** scan the codebase for any hardcoded secrets, API keys, or credentials
+  that should only be in `.env`; confirm `.env` and any local config files are gitignored and were
+  never committed to git history.
+- **Weak integration points:** re-verify Graph API error handling (locked workbook, expired
+  token, timeout), Supabase error handling (unreachable, RLS issues), and the new PDF-only
+  workbook refresh flow from the prior fix — confirm each fails gracefully with a clear message,
+  not a crash.
+- **Migrations:** confirm every migration file in `supabase/migrations/` (including the new one
+  from 13.2) has actually been applied to the real Supabase project with no drift, and that the
+  app's code doesn't assume any column/table that isn't actually present in the live database.
+- Report a clear pass/fail per area, and fix anything that fails, before proceeding to 13.4.
+
+### 13.4 Push & Deploy
+Only after 13.1–13.3 are complete and confirmed passing:
+1. Commit and push all changes to the git repository.
+2. Trigger/refresh the Vercel deployment so it picks up the latest code.
+3. Verify directly on the live deployed Vercel URL (not just localhost) that: login works, all
+   pages load with the new UI, the Settings module works end-to-end, New Quotation's dropdowns
+   work, Generate PDF works within the ~15s target, and Transfer to Financial works.
+4. Report back the live URL and confirm everything was verified there, not just locally.
+
+## 14. Fourth Upgrade Addendum - Test-Driven PDF Template Refresh and Final Deployment
+(read after Section 13; this section finalizes the PDF-only workbook refresh contract and the
+remaining deployment verification. It does not replace or remove any earlier requirement.)
+
+### 14.1 Scope and invariants
+- Keep all existing quotation field mappings, calculations, Summary behavior, Financial transfer
+  behavior, Store management, Settings behavior, and authentication unchanged.
+- This feature refreshes only `Web app PDF Export.xlsx`. It must never replace, delete, or remove
+  worksheets from the main `Web app.xlsx` workbook.
+- Use the exact backend service method name `refreshPdfTemplate()`.
+- Use the exact backend route `POST /api/onedrive/refresh-pdf-template`.
+- The route is authenticated and requires `{ "confirmed": true }` before any workbook content is
+  replaced.
+- The frontend OneDrive page must expose one `Refresh PDF template` button with loading, success,
+  and clear failure states plus a visible confirmation dialog.
+- Do not modify quotation logic merely to implement this refresh. If an unrelated issue is found,
+  report it separately instead of silently expanding scope.
+
+### 14.2 Required test-driven implementation order
+1. Write failing tests before changing implementation:
+   - the flow discovers the current exact `Web app.xlsx`;
+   - the old cached PDF-workbook connection is cleared;
+   - an existing exact `Web app PDF Export.xlsx` is refreshed from the current main workbook;
+   - a fresh `Web app PDF Export.xlsx` is created when it does not exist;
+   - the export workbook is prepared with only the `Quatation` worksheet;
+   - the confirmed route returns success JSON;
+   - an unconfirmed route call is rejected;
+   - the frontend button shows loading, success, and error states.
+2. Implement the minimum code needed to make those tests pass.
+3. Run the focused backend and frontend tests.
+4. Run all backend/frontend tests, lint, TypeScript builds, and `git diff --check`.
+5. Do not claim completion based only on mocks; complete the real verification in 14.4.
+
+### 14.3 Refresh behavior
+The service must perform these steps in order:
+1. Search OneDrive for the current exact `Web app.xlsx` instead of trusting only an old cached ID.
+2. Cache that current main-workbook connection.
+3. Clear the old cached PDF-workbook connection.
+4. Search for the exact `Web app PDF Export.xlsx`.
+5. If it exists, replace its workbook contents from the current `Web app.xlsx`; if it does not
+   exist, create it from the current main workbook.
+6. Prepare the PDF workbook so `Quatation` is present and all non-quotation worksheets are removed
+   only from the PDF helper workbook.
+7. Cache the refreshed PDF-workbook connection.
+8. Return JSON containing the helper workbook name and refresh timestamp.
+
+### 14.4 Real verification and deployment gate
+Before push or deployment:
+1. Ensure all Excel desktop windows, Excel background processes, and Excel Online tabs using
+   `Web app.xlsx` are closed.
+2. Run the OneDrive safe-cell write/read/restore test.
+3. Use the OneDrive page's visible confirmation and click `Refresh PDF template`.
+4. Confirm the helper workbook is `Web app PDF Export.xlsx` and contains only `Quatation`.
+5. Generate a real PDF from an existing saved quotation and verify:
+   - a valid PDF is returned and downloadable;
+   - the latest formatting from the current main template appears in the PDF;
+   - the Summary row is correct;
+   - total end-to-end generation time is measured and reported.
+6. Re-run Transfer to Financial only with an already-transferred quotation and first verify that
+   the Financial row already exists, so this test confirms idempotency without adding a new row.
+7. Confirm Supabase migrations `0001` through `0004` match the linked remote project. Migration
+   `0004_create_quotation_field_options.sql` already exists; do not create a duplicate migration
+   and never apply any new migration without the user's explicit approval.
+8. Run the final secrets scan and confirm `.env`, `.data`, generated files, and Vercel local
+   metadata remain untracked.
+9. Only after every check passes: commit, push `main`, refresh both Vercel deployments, and verify
+   login, all pages, Settings CRUD, quotation dropdowns, PDF refresh, Generate PDF, and Financial
+   transfer on the live Vercel URLs.
+
+### 14.5 Antigravity startup prompt
+Use this prompt when starting a fresh agent:
+
+> Read `AGENTS.md` and the complete `instructions.md`, including Sections 13 and 14, before doing
+> anything. Inspect the current Git diff and existing tests first; continue the existing
+> implementation instead of recreating completed features. Verify that the current code uses
+> `refreshPdfTemplate()` and `POST /api/onedrive/refresh-pdf-template`. Follow Section 14's TDD
+> order exactly. Do not alter quotation cell mappings, Summary behavior, Financial behavior, or
+> migration `0004`. Never apply a migration without showing the full SQL and receiving explicit
+> approval. Before any real Graph write, use the existing visible confirmation flow. Finish the
+> remaining real workbook tests only after `Web app.xlsx` is fully closed, then run all tests,
+> lint, builds, migration/security checks, push to GitHub, refresh both Vercel deployments, and
+> verify the live URLs. Report facts from commands and live checks only; do not guess or claim an
+> unverified step passed.

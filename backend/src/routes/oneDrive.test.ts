@@ -9,6 +9,7 @@ import type {
 import type { SummaryGrid } from '../graph/summaryGrid.js'
 import type { QuotationRepository } from '../repositories/quotationRepository.js'
 import type { StoreRepository } from '../repositories/storeRepository.js'
+import { allowTestAuth } from '../test/allowTestAuth.js'
 
 const storeRepository = {} as StoreRepository
 const quotationRepository = {} as QuotationRepository
@@ -22,6 +23,10 @@ class FakeOneDriveService implements OneDriveService {
       name: 'Web app.xlsx',
       connectedAt: '2026-07-23T00:00:00.000Z',
     },
+  })
+  refreshPdfTemplate = async () => ({
+    name: 'Web app PDF Export.xlsx',
+    refreshedAt: '2026-07-30T12:00:00.000Z',
   })
   inspectSafeTestCell = async (): Promise<TestCellCandidate> => ({
     worksheet: 'Quatation',
@@ -64,6 +69,8 @@ describe('OneDrive routes', () => {
     storeRepository,
     quotationRepository,
     new FakeOneDriveService(),
+    undefined,
+    allowTestAuth,
   )
 
   it('reports connection status without exposing tokens', async () => {
@@ -125,6 +132,29 @@ describe('OneDrive routes', () => {
       address: 'Quatation!J1',
       verified: true,
       restored: true,
+    })
+  })
+
+  it('requires confirmation before refreshing the PDF-only workbook', async () => {
+    const response = await request(app)
+      .post('/api/onedrive/refresh-pdf-template')
+      .send({})
+
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({
+      error: 'PDF workbook refresh confirmation is required',
+    })
+  })
+
+  it('refreshes the PDF-only workbook after confirmation', async () => {
+    const response = await request(app)
+      .post('/api/onedrive/refresh-pdf-template')
+      .send({ confirmed: true })
+
+    expect(response.status).toBe(200)
+    expect(response.body.result).toEqual({
+      name: 'Web app PDF Export.xlsx',
+      refreshedAt: '2026-07-30T12:00:00.000Z',
     })
   })
 

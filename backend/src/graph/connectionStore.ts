@@ -1,4 +1,10 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -50,13 +56,26 @@ async function saveConnection(
   path: string,
   connection: WorkbookConnection,
 ) {
-  await mkdir(dirname(path), { recursive: true })
-  const temporaryPath = `${path}.tmp`
-  await writeFile(temporaryPath, JSON.stringify(connection, null, 2), {
-    encoding: 'utf8',
-    mode: 0o600,
-  })
-  await rename(temporaryPath, path)
+  try {
+    await mkdir(dirname(path), { recursive: true })
+    const temporaryPath = `${path}.tmp`
+    await writeFile(temporaryPath, JSON.stringify(connection, null, 2), {
+      encoding: 'utf8',
+      mode: 0o600,
+    })
+    await rename(temporaryPath, path)
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+
+    if (
+      process.env.VERCEL &&
+      (code === 'EROFS' || code === 'EPERM' || code === 'EACCES')
+    ) {
+      return
+    }
+
+    throw error
+  }
 }
 
 export function readWorkbookConnection() {
@@ -81,4 +100,22 @@ export function savePdfWorkbookConnection(
   connection: WorkbookConnection,
 ) {
   return saveConnection(pdfSettingsPath, connection)
+}
+
+export async function clearPdfWorkbookConnection() {
+  try {
+    await rm(pdfSettingsPath, { force: true })
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+
+    if (
+      code === 'ENOENT' ||
+      (process.env.VERCEL &&
+        (code === 'EROFS' || code === 'EPERM' || code === 'EACCES'))
+    ) {
+      return
+    }
+
+    throw error
+  }
 }

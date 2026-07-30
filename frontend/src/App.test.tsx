@@ -86,6 +86,40 @@ vi.mock('./api/quotations', () => ({
   transferQuotationToFinancial: vi.fn(),
 }))
 
+vi.mock('./api/settings', () => ({
+  createQuotationFieldOption: vi.fn(),
+  deleteQuotationFieldOption: vi.fn(),
+  listQuotationFieldOptions: vi.fn(() =>
+    Promise.resolve([
+      {
+        id: 'qtn-option-id',
+        fieldKey: 'qtn_no',
+        optionValue: 'QTN-NAVIGATION',
+        sortOrder: 0,
+        createdAt: '2026-07-30T00:00:00.000Z',
+        updatedAt: '2026-07-30T00:00:00.000Z',
+      },
+      {
+        id: 'client-option-id',
+        fieldKey: 'client_name',
+        optionValue: 'Test Client',
+        sortOrder: 0,
+        createdAt: '2026-07-30T00:00:00.000Z',
+        updatedAt: '2026-07-30T00:00:00.000Z',
+      },
+      {
+        id: 'region-option-id',
+        fieldKey: 'region',
+        optionValue: 'Persistent Region',
+        sortOrder: 0,
+        createdAt: '2026-07-30T00:00:00.000Z',
+        updatedAt: '2026-07-30T00:00:00.000Z',
+      },
+    ]),
+  ),
+  updateQuotationFieldOption: vi.fn(),
+}))
+
 vi.mock('./api/records', () => ({
   deleteRecordRow: vi.fn(),
   getRecords: vi.fn(() =>
@@ -132,7 +166,14 @@ describe('App routes', () => {
     vi.clearAllMocks()
   })
 
-  it.each(['/', '/stores', '/quotations/new', '/records', '/onedrive'])(
+  it.each([
+    '/',
+    '/stores',
+    '/quotations/new',
+    '/records',
+    '/settings',
+    '/onedrive',
+  ])(
     'redirects protected page %s to login when signed out',
     async (path) => {
     authMocks.getSession.mockResolvedValueOnce({
@@ -253,8 +294,14 @@ describe('App routes', () => {
       })
       const storeSelect = await screen.findByLabelText(/^Branch/)
       await user.selectOptions(storeSelect, 'store-id')
-      await user.type(screen.getByLabelText(/QTN #/), 'QTN-NAVIGATION')
-      await user.type(screen.getByLabelText(/Region/), 'Persistent Region')
+      await user.selectOptions(
+        screen.getByLabelText(/QTN #/),
+        'QTN-NAVIGATION',
+      )
+      await user.selectOptions(
+        screen.getByLabelText(/Region/),
+        'Persistent Region',
+      )
       await user.type(screen.getByLabelText('Subject'), 'Persistent subject')
       await user.type(
         screen.getByLabelText(/^Description/),
@@ -272,7 +319,7 @@ describe('App routes', () => {
 
       await waitFor(() => {
         expect(
-          (screen.getByLabelText(/QTN #/) as HTMLInputElement).value,
+          (screen.getByLabelText(/QTN #/) as HTMLSelectElement).value,
         ).toBe('QTN-NAVIGATION')
       })
       expect((screen.getByLabelText('Subject') as HTMLInputElement).value).toBe(
@@ -281,7 +328,7 @@ describe('App routes', () => {
       expect(
         (screen.getByLabelText(/^Branch/) as HTMLSelectElement).value,
       ).toBe('store-id')
-      expect((screen.getByLabelText(/Region/) as HTMLInputElement).value).toBe(
+      expect((screen.getByLabelText(/Region/) as HTMLSelectElement).value).toBe(
         'Persistent Region',
       )
       expect(screen.getAllByLabelText(/Description/)).toHaveLength(2)

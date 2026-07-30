@@ -108,7 +108,7 @@ export function StoresPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         description="Store details entered here will auto-fill future quotation forms."
         eyebrow="Store directory"
@@ -124,7 +124,7 @@ export function StoresPage() {
       <TwoColumnLayout
         main={
           <Card className="overflow-hidden" padded={false}>
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <div>
                 <h3 className="font-semibold text-slate-950">Saved stores</h3>
                 <p className="mt-1 text-sm text-slate-500">
@@ -134,7 +134,7 @@ export function StoresPage() {
             </div>
 
             {isLoading ? (
-              <p className="px-6 py-14 text-center text-sm font-medium text-slate-500">
+              <p className="px-5 py-10 text-center text-sm font-medium text-slate-500">
                 Loading stores...
               </p>
             ) : (
@@ -154,7 +154,7 @@ export function StoresPage() {
         }
         aside={
           <Card aria-busy={isSaving}>
-          <div className="mb-6">
+          <div className="mb-5">
             <h3 className="text-lg font-semibold text-slate-950">
               {editingStore
                 ? `Edit ${editingStore.branch ?? 'branch'}`

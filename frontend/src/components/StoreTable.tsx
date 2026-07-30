@@ -46,20 +46,26 @@ export function StoreTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-[40rem] divide-y divide-slate-200 text-left text-sm">
+    <div className="max-w-full overflow-x-auto">
+      <table className="w-full min-w-[34rem] table-fixed divide-y divide-slate-200 text-left text-sm">
+        <colgroup>
+          <col className="w-[32%]" />
+          <col className="w-[22%]" />
+          <col className="w-[26%]" />
+          <col className="w-[20%]" />
+        </colgroup>
         <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
           <tr>
-            <th className="px-6 py-4 font-semibold" scope="col">
+            <th className="px-4 py-3 font-semibold" scope="col">
               Branch
             </th>
-            <th className="px-6 py-4 font-semibold" scope="col">
+            <th className="px-4 py-3 font-semibold" scope="col">
               Branch ID
             </th>
-            <th className="px-6 py-4 font-semibold" scope="col">
+            <th className="px-4 py-3 font-semibold" scope="col">
               Mr./Ms.
             </th>
-            <th className="px-6 py-4 text-right font-semibold" scope="col">
+            <th className="px-4 py-3 text-right font-semibold" scope="col">
               Actions
             </th>
           </tr>
@@ -70,18 +76,18 @@ export function StoreTable({
               className="transition-colors hover:bg-blue-50/40"
               key={store.id}
             >
-              <td className="whitespace-nowrap px-6 py-4">
-                <p className="font-semibold text-slate-950">
+              <td className="px-4 py-3">
+                <p className="break-words font-semibold text-slate-950">
                   {store.branch || '-'}
                 </p>
               </td>
-              <td className="whitespace-nowrap px-6 py-4 text-slate-600">
+              <td className="break-words px-4 py-3 text-slate-600">
                 {store.branchId || '-'}
               </td>
-              <td className="whitespace-nowrap px-6 py-4 text-slate-600">
+              <td className="break-words px-4 py-3 text-slate-600">
                 {store.contactName || '-'}
               </td>
-              <td className="whitespace-nowrap px-6 py-4 text-right">
+              <td className="whitespace-nowrap px-4 py-3 text-right">
                 <button
                   className="font-semibold text-bms-blue hover:text-blue-900"
                   onClick={() => onEdit(store)}

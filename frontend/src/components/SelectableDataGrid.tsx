@@ -51,7 +51,7 @@ export function SelectableDataGrid({
   defaultSelection = 'all',
   headers,
   label,
-  minTableWidthClassName = 'min-w-[70rem]',
+  minTableWidthClassName = 'min-w-[62rem]',
   rows,
   showSelectAllButton = false,
   variant = 'default',
@@ -217,7 +217,7 @@ export function SelectableDataGrid({
 
   if (headers.length === 0) {
     return (
-      <div className="px-6 py-12 text-center text-sm text-slate-500">
+      <div className="px-5 py-10 text-center text-sm text-slate-500">
         The Summary worksheet has no readable header row.
       </div>
     )
@@ -226,7 +226,7 @@ export function SelectableDataGrid({
   return (
     <div>
       <div
-        className={`flex min-h-16 flex-col gap-3 border-b px-5 py-3 sm:flex-row sm:items-center sm:justify-between ${
+        className={`flex min-h-14 flex-col gap-2.5 border-b px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between ${
           variant === 'summaryPreview'
             ? 'border-slate-300 bg-white'
             : 'border-slate-200 bg-slate-50'
@@ -250,7 +250,7 @@ export function SelectableDataGrid({
         <div className="flex flex-wrap gap-2">
           {showSelectAllButton && (
             <button
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
               onClick={selectAllCells}
               type="button"
             >
@@ -258,7 +258,7 @@ export function SelectableDataGrid({
             </button>
           )}
           <button
-            className="rounded-lg bg-bms-blue px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-900 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
+            className="rounded-lg bg-bms-blue px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-900 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
             disabled={!selection}
             onClick={() => void copySelection()}
             title={selection ? 'Copy selected cells' : 'Select cells to enable copy'}
@@ -271,7 +271,7 @@ export function SelectableDataGrid({
 
       <p
         aria-live="polite"
-        className={`px-5 text-sm font-medium transition-all ${
+        className={`px-4 text-sm font-medium transition-all ${
           copyStatus
             ? 'border-b border-emerald-200 bg-emerald-50 py-3 text-emerald-800'
             : 'h-0 overflow-hidden'
@@ -292,7 +292,7 @@ export function SelectableDataGrid({
           className={`${minTableWidthClassName} table-fixed border-collapse text-left ${
             variant === 'summaryPreview'
               ? 'text-[12px] font-semibold'
-              : 'text-sm'
+              : 'text-xs'
           }`}
         >
           {variant === 'summaryPreview' && (
@@ -323,7 +323,7 @@ export function SelectableDataGrid({
                               ? 'ring-2 ring-inset ring-bms-blue'
                               : ''
                           }`
-                        : `cursor-cell select-none border border-slate-300 px-3 py-3 font-bold text-slate-800 ${
+                        : `cursor-cell select-none border border-slate-300 px-2.5 py-2.5 font-bold text-slate-800 ${
                             selected
                               ? 'bg-blue-100 ring-1 ring-inset ring-bms-blue'
                               : 'bg-slate-100'
@@ -360,7 +360,7 @@ export function SelectableDataGrid({
                         aria-label={`Cell ${address}: ${displayCell(value)}`}
                         className={
                           variant === 'summaryPreview'
-                            ? `h-32 cursor-cell select-none border border-black bg-white px-2 py-3 text-center align-middle text-black ${
+                            ? `h-24 cursor-cell select-none border border-black bg-white px-2 py-2.5 text-center align-middle text-black ${
                                 selected
                                   ? 'ring-2 ring-inset ring-bms-blue'
                                   : 'hover:bg-blue-50'
@@ -373,7 +373,7 @@ export function SelectableDataGrid({
                                   ? 'font-bold'
                                   : 'font-medium'
                               }`
-                            : `cursor-cell select-none border border-slate-300 px-3 py-3 align-top text-slate-700 ${
+                            : `cursor-cell select-none border border-slate-300 px-2.5 py-2.5 align-top text-slate-700 ${
                                 selected
                                   ? 'bg-blue-100 ring-1 ring-inset ring-bms-blue'
                                   : 'bg-white hover:bg-blue-50'
@@ -390,8 +390,8 @@ export function SelectableDataGrid({
                         <span
                           className={`block whitespace-pre-wrap break-words ${
                             variant === 'summaryPreview'
-                              ? 'max-h-28 leading-5'
-                              : 'max-h-24 overflow-hidden'
+                              ? 'max-h-20 leading-5'
+                              : 'max-h-20 overflow-hidden leading-5'
                           }`}
                         >
                           {displayCell(value) || '\u00a0'}

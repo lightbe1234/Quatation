@@ -1,9 +1,11 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   getOneDriveStatus,
   getSummaryGrid,
+  refreshPdfTemplate,
 } from '../api/oneDrive'
 import { OneDrivePage } from './OneDrivePage'
 
@@ -12,6 +14,7 @@ vi.mock('../api/oneDrive', () => ({
   getOneDriveStatus: vi.fn(),
   getSummaryGrid: vi.fn(),
   inspectTestCell: vi.fn(),
+  refreshPdfTemplate: vi.fn(),
   runTestCell: vi.fn(),
 }))
 
@@ -50,6 +53,10 @@ describe('OneDrivePage', () => {
         ],
       ],
     })
+    vi.mocked(refreshPdfTemplate).mockResolvedValue({
+      name: 'Web app PDF Export.xlsx',
+      refreshedAt: '2026-07-30T12:00:00.000Z',
+    })
   })
 
   afterEach(() => {
@@ -77,5 +84,30 @@ describe('OneDrivePage', () => {
     expect(
       screen.queryByRole('link', { name: /Summary PDF/ }),
     ).toBeNull()
+  })
+
+  it('refreshes the PDF template only after visible confirmation', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    render(
+      <MemoryRouter>
+        <OneDrivePage />
+      </MemoryRouter>,
+    )
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Refresh PDF template' }),
+    )
+
+    expect(window.confirm).toHaveBeenCalledOnce()
+    await waitFor(() => {
+      expect(refreshPdfTemplate).toHaveBeenCalledOnce()
+    })
+    expect(
+      await screen.findByText(
+        'PDF template refreshed from Web app.xlsx successfully.',
+      ),
+    ).toBeTruthy()
   })
 })

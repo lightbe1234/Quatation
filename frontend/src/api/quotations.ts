@@ -3,11 +3,15 @@ import type {
   RecentQuotation,
   SavedQuotation,
 } from '../types/quotation'
+import { authenticatedFetch } from './authenticatedFetch'
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
 
 export async function listRecentQuotations(signal?: AbortSignal) {
-  const response = await fetch(`${apiBaseUrl}/api/quotations`, { signal })
+  const response = await authenticatedFetch(
+    `${apiBaseUrl}/api/quotations`,
+    { signal },
+  )
   const body = (await response.json().catch(() => null)) as {
     quotations?: RecentQuotation[]
     error?: string
@@ -21,11 +25,14 @@ export async function listRecentQuotations(signal?: AbortSignal) {
 }
 
 export async function createQuotation(payload: QuotationPayload) {
-  const response = await fetch(`${apiBaseUrl}/api/quotations`, {
+  const response = await authenticatedFetch(
+    `${apiBaseUrl}/api/quotations`,
+    {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  })
+    },
+  )
 
   const body = (await response.json().catch(() => null)) as {
     quotation?: SavedQuotation
@@ -40,7 +47,7 @@ export async function createQuotation(payload: QuotationPayload) {
 }
 
 export async function generateQuotationPdf(quotationId: string) {
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${apiBaseUrl}/api/quotations/${quotationId}/generate-pdf`,
     {
       method: 'POST',
@@ -64,7 +71,7 @@ export async function generateQuotationPdf(quotationId: string) {
 }
 
 export async function transferQuotationToFinancial(quotationId: string) {
-  const response = await fetch(
+  const response = await authenticatedFetch(
     `${apiBaseUrl}/api/quotations/${quotationId}/transfer-financial`,
     {
       method: 'POST',

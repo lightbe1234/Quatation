@@ -12,6 +12,7 @@ import type {
   QuotationInput,
   SavedQuotation,
 } from '../types/quotation.js'
+import { allowTestAuth } from '../test/allowTestAuth.js'
 
 const storeRepository: StoreRepository = {
   list: async () => [],
@@ -113,6 +114,10 @@ class FakeOneDriveService implements OneDriveService {
   createAuthorizationUrl = async () => ''
   completeAuthorization = async () => undefined
   getStatus = async () => ({ connected: true })
+  refreshPdfTemplate = async () => ({
+    name: 'Web app PDF Export.xlsx',
+    refreshedAt: new Date().toISOString(),
+  })
   inspectSafeTestCell = async () => ({
     worksheet: 'Quatation',
     address: 'J1',
@@ -160,6 +165,19 @@ const validQuotation = {
   ],
 }
 
+function createTestApp(
+  repository: QuotationRepository,
+  oneDriveService?: OneDriveService,
+) {
+  return createApp(
+    storeRepository,
+    repository,
+    oneDriveService,
+    undefined,
+    allowTestAuth,
+  )
+}
+
 describe('Quotation routes', () => {
   it('lists recent quotations for resumed workflows', async () => {
     const repository = new MemoryQuotationRepository()
@@ -170,9 +188,9 @@ describe('Quotation routes', () => {
         lineNo: index + 1,
       })),
     })
-    const response = await request(
-      createApp(storeRepository, repository),
-    ).get('/api/quotations')
+    const response = await request(createTestApp(repository)).get(
+      '/api/quotations',
+    )
 
     expect(response.status).toBe(200)
     expect(response.body.quotations).toHaveLength(1)
@@ -181,7 +199,7 @@ describe('Quotation routes', () => {
 
   it('validates and creates a draft quotation', async () => {
     const repository = new MemoryQuotationRepository()
-    const response = await request(createApp(storeRepository, repository))
+    const response = await request(createTestApp(repository))
       .post('/api/quotations')
       .send(validQuotation)
 
@@ -193,7 +211,7 @@ describe('Quotation routes', () => {
 
   it('rejects more than 12 line items', async () => {
     const response = await request(
-      createApp(storeRepository, new MemoryQuotationRepository()),
+      createTestApp(new MemoryQuotationRepository()),
     )
       .post('/api/quotations')
       .send({
@@ -222,7 +240,7 @@ describe('Quotation routes', () => {
     })
     const oneDriveService = new FakeOneDriveService()
     const response = await request(
-      createApp(storeRepository, repository, oneDriveService),
+      createTestApp(repository, oneDriveService),
     )
       .post(`/api/quotations/${repository.quotation?.id}/generate-pdf`)
       .send({})
@@ -245,7 +263,7 @@ describe('Quotation routes', () => {
     })
     const oneDriveService = new FakeOneDriveService()
     const response = await request(
-      createApp(storeRepository, repository, oneDriveService),
+      createTestApp(repository, oneDriveService),
     )
       .post(`/api/quotations/${repository.quotation?.id}/generate-pdf`)
       .send({ confirmed: true })
@@ -268,7 +286,7 @@ describe('Quotation routes', () => {
       })),
     })
     const oneDriveService = new FakeOneDriveService()
-    const app = createApp(storeRepository, repository, oneDriveService)
+    const app = createTestApp(repository, oneDriveService)
     const withoutConfirmation = await request(app)
       .post(
         `/api/quotations/${repository.quotation?.id}/transfer-financial`,
@@ -305,7 +323,7 @@ describe('Quotation routes', () => {
     await repository.markPdfGenerated()
     const oneDriveService = new FakeOneDriveService()
     const response = await request(
-      createApp(storeRepository, repository, oneDriveService),
+      createTestApp(repository, oneDriveService),
     )
       .post(
         `/api/quotations/${repository.quotation?.id}/transfer-financial`,
@@ -337,7 +355,7 @@ describe('Quotation routes', () => {
     }
     const oneDriveService = new FakeOneDriveService()
     const response = await request(
-      createApp(storeRepository, repository, oneDriveService),
+      createTestApp(repository, oneDriveService),
     )
       .post(
         `/api/quotations/${repository.quotation?.id}/transfer-financial`,

@@ -12,3 +12,5 @@ tmp/
 *.pdf
 *.xlsx
 .DS_Store
+
+.vercel

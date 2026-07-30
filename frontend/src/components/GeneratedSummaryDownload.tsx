@@ -63,7 +63,7 @@ export function GeneratedSummaryDownload({
     <Card aria-busy={isGenerating || isDownloading} padded={false}>
       {isGenerating ? (
         <div
-          className="flex items-center justify-center gap-3 p-6 text-sm font-semibold text-bms-blue"
+          className="flex items-center justify-center gap-3 p-5 text-sm font-semibold text-bms-blue"
           role="status"
         >
           <LoadingSpinner className="size-5" />
@@ -71,7 +71,7 @@ export function GeneratedSummaryDownload({
         </div>
       ) : data ? (
         <>
-          <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-bms-blue">
                 Live Summary worksheet
@@ -100,8 +100,8 @@ export function GeneratedSummaryDownload({
             </Button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-[65rem] table-fixed border-collapse text-xs">
+          <div className="max-w-full overflow-x-auto">
+            <table className="min-w-[58rem] table-fixed border-collapse text-xs">
               <colgroup>
                 <col className="w-16" />
                 <col className="w-36" />
@@ -116,7 +116,7 @@ export function GeneratedSummaryDownload({
                 <tr>
                   {data.headers.map((header, column) => (
                     <th
-                      className="border border-slate-900 bg-[#4f7f2b] px-2 py-3 text-center font-bold uppercase leading-tight text-white"
+                      className="border border-slate-900 bg-[#4f7f2b] px-2 py-2.5 text-center font-bold uppercase leading-tight text-white"
                       key={`header-${column}`}
                       scope="col"
                     >
@@ -129,7 +129,7 @@ export function GeneratedSummaryDownload({
                 <tr>
                   {data.headers.map((_, column) => (
                     <td
-                      className="h-20 border border-slate-900 bg-white px-2 py-3 text-center align-middle font-semibold leading-5 text-slate-950"
+                      className="h-16 border border-slate-900 bg-white px-2 py-2.5 text-center align-middle font-semibold leading-5 text-slate-950"
                       key={`value-${column}`}
                     >
                       {displayCell(data.row[column] ?? null)}

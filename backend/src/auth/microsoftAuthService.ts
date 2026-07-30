@@ -31,6 +31,10 @@ export class MicrosoftAuthService {
   private readonly cryptoProvider = new CryptoProvider()
   private readonly pendingFlows = new Map<string, PendingFlow>()
 
+  constructor(client?: ConfidentialClientApplication) {
+    this.client = client
+  }
+
   private getClient() {
     if (!this.client) {
       const config = requireMicrosoftEnv()

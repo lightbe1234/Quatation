@@ -78,6 +78,18 @@ describe('RecordsPage', () => {
     expect(screen.queryByText('Summary Records')).toBeNull()
   })
 
+  it('contains the wide Financial table in a responsive scroll region', async () => {
+    render(<RecordsPage />)
+
+    await screen.findByText('QTN-1')
+    const table = screen.getByRole('table')
+
+    expect(table.className).toContain('table-fixed')
+    expect(table.className).toContain('min-w-[88rem]')
+    expect(table.parentElement?.className).toContain('max-w-full')
+    expect(table.parentElement?.className).toContain('overflow-x-auto')
+  })
+
   it('edits and updates a Financial row', async () => {
     const user = userEvent.setup()
     render(<RecordsPage />)

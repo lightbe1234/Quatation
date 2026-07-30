@@ -11,12 +11,11 @@ import { AppLayout } from './components/AppLayout'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { OneDrivePage } from './pages/OneDrivePage'
-import {
-  createEmptyQuotationDraft,
-  QuotationEntryPage,
-} from './pages/QuotationEntryPage'
+import { QuotationEntryPage } from './pages/QuotationEntryPage'
+import { createEmptyQuotationDraft } from './pages/quotationDraft'
 import { RecordsPage } from './pages/RecordsPage'
 import { StoresPage } from './pages/StoresPage'
+import { SettingsPage } from './pages/SettingsPage'
 import type { QuotationDraft } from './types/quotation'
 
 function AuthenticatedLayout() {
@@ -62,6 +61,7 @@ function App() {
             }
           />
           <Route path="records" element={<RecordsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="onedrive" element={<OneDrivePage />} />
           <Route path="*" element={<Navigate replace to="/" />} />
         </Route>

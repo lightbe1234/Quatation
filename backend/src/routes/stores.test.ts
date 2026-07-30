@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createApp } from '../app.js'
 import type { StoreRepository } from '../repositories/storeRepository.js'
 import type { Store, StoreInput } from '../types/store.js'
+import { allowTestAuth } from '../test/allowTestAuth.js'
 
 class MemoryStoreRepository implements StoreRepository {
   stores: Store[] = []
@@ -53,7 +54,13 @@ describe('Store routes', () => {
   })
 
   it('creates, lists, updates, and deletes a store', async () => {
-    const app = createApp(repository)
+    const app = createApp(
+      repository,
+      undefined,
+      undefined,
+      undefined,
+      allowTestAuth,
+    )
     const created = await request(app).post('/api/stores').send(validStore)
 
     expect(created.status).toBe(201)
@@ -78,7 +85,15 @@ describe('Store routes', () => {
   })
 
   it('rejects a store without its required fields', async () => {
-    const response = await request(createApp(repository))
+    const response = await request(
+      createApp(
+        repository,
+        undefined,
+        undefined,
+        undefined,
+        allowTestAuth,
+      ),
+    )
       .post('/api/stores')
       .send({ branch: 'Duwadmi' })
 

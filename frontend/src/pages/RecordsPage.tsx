@@ -155,8 +155,8 @@ export function RecordsPage() {
   const grid: WorkbookRecordGrid | undefined = records?.financial
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <PageHeader
           description="Review and manage rows directly in the live Excel financial worksheet."
           eyebrow="Workbook records"
@@ -180,14 +180,14 @@ export function RecordsPage() {
       )}
 
       <Card className="overflow-hidden" padded={false}>
-        <div className="border-b border-slate-200 p-6">
+        <div className="border-b border-slate-200 p-5">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">
             Live Excel worksheet
           </p>
-          <h3 className="mt-2 text-xl font-bold text-slate-950">
+          <h3 className="mt-1.5 text-lg font-bold text-slate-950">
             Financial Records
           </h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+          <p className="mt-1.5 text-sm leading-6 text-slate-600">
             Rows currently stored in the live financial worksheet. Edit and
             delete actions require confirmation before Excel is changed.
           </p>
@@ -195,29 +195,45 @@ export function RecordsPage() {
 
         {isLoading && !grid ? (
           <div
-            className="flex items-center justify-center gap-3 px-6 py-14 text-sm font-medium text-slate-600"
+            className="flex items-center justify-center gap-3 px-5 py-10 text-sm font-medium text-slate-600"
             role="status"
           >
             <LoadingSpinner className="size-5" />
             Loading live Financial Records...
           </div>
         ) : grid && grid.rows.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-[110rem] divide-y divide-slate-200 text-left text-sm">
+          <div className="max-w-full overflow-x-auto">
+            <table className="w-full min-w-[88rem] table-fixed divide-y divide-slate-200 text-left text-xs">
+              <colgroup>
+                <col className="w-14" />
+                <col className="w-24" />
+                <col className="w-28" />
+                <col className="w-28" />
+                <col className="w-24" />
+                <col className="w-20" />
+                <col className="w-24" />
+                <col className="w-40" />
+                <col className="w-24" />
+                <col className="w-16" />
+                <col className="w-20" />
+                <col className="w-28" />
+                <col className="w-28" />
+                <col className="w-36" />
+              </colgroup>
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="px-2.5 py-3 text-[0.7rem] font-bold uppercase leading-4 tracking-wide text-slate-500">
                     Excel row
                   </th>
                   {grid.headers.map((header, index) => (
                     <th
-                      className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-500"
+                      className="px-2.5 py-3 text-[0.7rem] font-bold uppercase leading-4 tracking-wide text-slate-500"
                       key={`${displayCell(header)}-${index}`}
                     >
                       {displayCell(header)}
                     </th>
                   ))}
-                  <th className="sticky right-0 bg-slate-50 px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <th className="sticky right-0 z-10 border-l border-slate-200 bg-slate-50 px-2.5 py-3 text-[0.7rem] font-bold uppercase leading-4 tracking-wide text-slate-500 shadow-[-6px_0_10px_-10px_rgba(15,23,42,0.45)]">
                     Actions
                   </th>
                 </tr>
@@ -231,18 +247,22 @@ export function RecordsPage() {
 
                   return (
                     <tr key={row.rowNumber}>
-                      <td className="px-4 py-4 font-mono text-xs font-bold text-slate-500">
+                      <td className="px-2.5 py-3 align-top font-mono text-[0.7rem] font-bold text-slate-500">
                         {row.rowNumber}
                       </td>
                       {row.values.map((value, column) => (
                         <td
-                          className="max-w-64 px-4 py-4 align-top text-slate-700"
+                          className={`px-2.5 py-3 align-top leading-5 text-slate-700 ${
+                            numericColumns.has(column) ? 'text-right tabular-nums' : ''
+                          }`}
                           key={`${row.rowNumber}-${column}`}
                         >
                           {isEditing ? (
                             <input
                               aria-label={`Financial Records row ${row.rowNumber} ${displayCell(grid.headers[column])}`}
-                              className="w-full min-w-32 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-bms-blue focus:ring-2 focus:ring-blue-100"
+                              className={`h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-bms-blue focus:ring-2 focus:ring-blue-100 ${
+                                numericColumns.has(column) ? 'text-right' : ''
+                              }`}
                               onChange={(event) =>
                                 updateEditingCell(column, event.target.value)
                               }
@@ -257,12 +277,12 @@ export function RecordsPage() {
                           )}
                         </td>
                       ))}
-                      <td className="sticky right-0 bg-white px-4 py-4">
-                        <div className="flex gap-2">
+                      <td className="sticky right-0 z-10 border-l border-slate-200 bg-white px-2.5 py-3 shadow-[-6px_0_10px_-10px_rgba(15,23,42,0.45)]">
+                        <div className="flex gap-1.5">
                           {isEditing ? (
                             <>
                               <Button
-                                className="min-h-9 px-3 py-2"
+                                className="min-h-8 px-2.5 py-1.5 text-xs"
                                 disabled={isBusy}
                                 onClick={() => void saveRow()}
                                 type="button"
@@ -270,7 +290,7 @@ export function RecordsPage() {
                                 {savingRow === row.rowNumber ? 'Updating...' : 'Update'}
                               </Button>
                               <Button
-                                className="min-h-9 px-3 py-2"
+                                className="min-h-8 px-2.5 py-1.5 text-xs"
                                 disabled={isBusy}
                                 onClick={() => setEditingRow(undefined)}
                                 type="button"
@@ -282,7 +302,7 @@ export function RecordsPage() {
                           ) : (
                             <>
                               <Button
-                                className="min-h-9 px-3 py-2"
+                                className="min-h-8 px-2.5 py-1.5 text-xs"
                                 disabled={isBusy || Boolean(editingRow)}
                                 onClick={() =>
                                   startEditing(row.rowNumber, row.values)
@@ -293,7 +313,7 @@ export function RecordsPage() {
                                 Edit
                               </Button>
                               <Button
-                                className="min-h-9 border-red-300 px-3 py-2 text-red-700 hover:bg-red-50"
+                                className="min-h-8 border-red-300 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-50"
                                 disabled={isBusy || Boolean(editingRow)}
                                 onClick={() => void removeRow(row.rowNumber)}
                                 type="button"

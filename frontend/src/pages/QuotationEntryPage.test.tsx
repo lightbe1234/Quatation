@@ -6,6 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createQuotation,
@@ -18,11 +19,20 @@ import {
   getSummaryGrid,
 } from '../api/oneDrive'
 import { listStores } from '../api/stores'
+import { listQuotationFieldOptions } from '../api/settings'
+import type {
+  QuotationFieldKey,
+  QuotationFieldOption,
+} from '../types/settings'
 import type { Store } from '../types/store'
 import { QuotationEntryPage } from './QuotationEntryPage'
 
 vi.mock('../api/stores', () => ({
   listStores: vi.fn(),
+}))
+
+vi.mock('../api/settings', () => ({
+  listQuotationFieldOptions: vi.fn(),
 }))
 
 vi.mock('../api/quotations', () => ({
@@ -49,9 +59,37 @@ const testStore: Store = {
   createdAt: '2026-07-23T00:00:00.000Z',
 }
 
+function option(
+  fieldKey: QuotationFieldKey,
+  optionValue: string,
+  index: number,
+): QuotationFieldOption {
+  return {
+    id: `${fieldKey}-${index}`,
+    fieldKey,
+    optionValue,
+    sortOrder: index,
+    createdAt: '2026-07-30T00:00:00.000Z',
+    updatedAt: '2026-07-30T00:00:00.000Z',
+  }
+}
+
+const testFieldOptions = [
+  option('qtn_no', 'QTN-PREVIEW', 0),
+  option('qtn_no', 'QTN-SUMMARY', 1),
+  option('qtn_no', 'QTN-COPY', 2),
+  option('qtn_no', 'QTN-100', 3),
+  option('client_name', 'Test Client', 0),
+  option('client_name', "McDonald's", 1),
+  option('region', 'Test Region', 0),
+  option('region', 'North Region', 1),
+  option('intro_line_1', 'Responsive preview text', 0),
+]
+
 describe('QuotationEntryPage', () => {
   beforeEach(() => {
     vi.mocked(listStores).mockResolvedValue([testStore])
+    vi.mocked(listQuotationFieldOptions).mockResolvedValue(testFieldOptions)
     vi.mocked(createQuotation).mockReset()
     vi.mocked(generateQuotationPdf).mockReset()
     vi.mocked(getSummaryGrid).mockReset()
@@ -103,14 +141,14 @@ describe('QuotationEntryPage', () => {
     expect(screen.getByLabelText(/Region/)).toBeTruthy()
   })
 
-  it('updates form text while the actual preview remains ungenerated', async () => {
+  it('updates a configured intro selection while the preview remains ungenerated', async () => {
     const user = userEvent.setup()
     render(<QuotationEntryPage />)
 
     const intro = await screen.findByLabelText('Intro line 1')
-    await user.type(intro, 'Responsive preview text')
+    await user.selectOptions(intro, 'Responsive preview text')
 
-    expect((intro as HTMLTextAreaElement).value).toBe(
+    expect((intro as HTMLSelectElement).value).toBe(
       'Responsive preview text',
     )
     expect(screen.getByText('No demo preview is shown')).toBeTruthy()
@@ -141,9 +179,12 @@ describe('QuotationEntryPage', () => {
       await screen.findByLabelText(/^Branch/),
       testStore.id,
     )
-    await user.type(screen.getByLabelText(/QTN #/), 'QTN-PREVIEW')
-    await user.type(screen.getByLabelText(/Client Name/), 'Test Client')
-    await user.type(screen.getByLabelText(/Region/), 'Test Region')
+    await user.selectOptions(screen.getByLabelText(/QTN #/), 'QTN-PREVIEW')
+    await user.selectOptions(
+      screen.getByLabelText(/Client Name/),
+      'Test Client',
+    )
+    await user.selectOptions(screen.getByLabelText(/Region/), 'Test Region')
     await user.type(screen.getByLabelText(/^Description/), 'Test service')
     await user.type(screen.getByLabelText(/Unit Price/), '25')
     await user.click(
@@ -194,7 +235,7 @@ describe('QuotationEntryPage', () => {
       await screen.findByLabelText(/^Branch/),
       testStore.id,
     )
-    await user.type(screen.getByLabelText(/QTN #/), 'QTN-SUMMARY')
+    await user.selectOptions(screen.getByLabelText(/QTN #/), 'QTN-SUMMARY')
     await user.type(screen.getByLabelText(/^Description/), 'Test service')
     await user.type(screen.getByLabelText(/Unit Price/), '25')
 
@@ -260,9 +301,12 @@ describe('QuotationEntryPage', () => {
       await screen.findByLabelText(/^Branch/),
       testStore.id,
     )
-    await user.type(screen.getByLabelText(/QTN #/), 'QTN-COPY')
-    await user.type(screen.getByLabelText(/Client Name/), 'Test Client')
-    await user.type(screen.getByLabelText(/Region/), 'Test Region')
+    await user.selectOptions(screen.getByLabelText(/QTN #/), 'QTN-COPY')
+    await user.selectOptions(
+      screen.getByLabelText(/Client Name/),
+      'Test Client',
+    )
+    await user.selectOptions(screen.getByLabelText(/Region/), 'Test Region')
     await user.type(screen.getByLabelText(/^Description/), 'Test service')
     await user.type(screen.getByLabelText(/Unit Price/), '25')
     await user.click(
@@ -298,7 +342,7 @@ describe('QuotationEntryPage', () => {
     expect(createQuotation).toHaveBeenCalledOnce()
   })
 
-  it('saves a manual client name and generates the confirmed PDF', async () => {
+  it('saves the configured client name and generates the confirmed PDF', async () => {
     const user = userEvent.setup()
     vi.spyOn(window, 'confirm')
       .mockReturnValueOnce(true)
@@ -349,9 +393,12 @@ describe('QuotationEntryPage', () => {
       await screen.findByLabelText(/^Branch/),
       testStore.id,
     )
-    await user.type(screen.getByLabelText(/QTN #/), 'QTN-100')
-    await user.type(screen.getByLabelText(/Client Name/), "McDonald's")
-    await user.type(screen.getByLabelText(/Region/), 'North Region')
+    await user.selectOptions(screen.getByLabelText(/QTN #/), 'QTN-100')
+    await user.selectOptions(
+      screen.getByLabelText(/Client Name/),
+      "McDonald's",
+    )
+    await user.selectOptions(screen.getByLabelText(/Region/), 'North Region')
     await user.type(screen.getByLabelText(/^Description/), 'Test service')
     await user.type(screen.getByLabelText(/Unit Price/), '25')
     await user.click(
@@ -453,5 +500,40 @@ describe('QuotationEntryPage', () => {
         ),
       ).toBeTruthy()
     })
+  })
+
+  it('explains missing required options and prevents saving', async () => {
+    vi.mocked(listQuotationFieldOptions).mockResolvedValue([])
+    render(
+      <MemoryRouter>
+        <QuotationEntryPage />
+      </MemoryRouter>,
+    )
+
+    expect(
+      await screen.findByRole('option', {
+        name: 'No QTN # options configured',
+      }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('option', {
+        name: 'No Client Name options configured',
+      }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('option', {
+        name: 'No Region options configured',
+      }),
+    ).toBeTruthy()
+    expect(
+      (
+        screen.getByRole('button', {
+          name: '1. Save quotation',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true)
+    expect(
+      screen.getAllByRole('link', { name: 'Add one in Settings' }),
+    ).toHaveLength(3)
   })
 })

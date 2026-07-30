@@ -65,4 +65,50 @@ describe('GraphClient', () => {
         'The workbook is currently open in Excel. Close Web app.xlsx and try generating the PDF again.',
     })
   })
+
+  it('maps a timed-out Graph request to a clear retryable error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, options?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            options?.signal?.addEventListener('abort', () => {
+              reject(
+                new DOMException(
+                  'The operation was aborted due to timeout',
+                  'TimeoutError',
+                ),
+              )
+            })
+          }),
+      ),
+    )
+
+    const client = new GraphClient(authService as never, 5)
+
+    await expect(client.request('/me/drive')).rejects.toMatchObject({
+      name: 'AppError',
+      statusCode: 504,
+      message:
+        'Microsoft Graph took too long to respond. Please try again.',
+    })
+  })
+
+  it('maps a Graph network failure to a clear retryable error', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('fetch failed')
+      }),
+    )
+
+    const client = new GraphClient(authService as never)
+
+    await expect(client.request('/me/drive')).rejects.toMatchObject({
+      name: 'AppError',
+      statusCode: 502,
+      message:
+        'Microsoft Graph could not be reached. Check the connection and try again.',
+    })
+  })
 })

@@ -24,7 +24,10 @@ export type GraphBatchRequest = {
 }
 
 export class GraphClient {
-  constructor(private readonly authService: MicrosoftAuthService) {}
+  constructor(
+    private readonly authService: MicrosoftAuthService,
+    private readonly timeoutMs = 45_000,
+  ) {}
 
   private async fetchWithAuth(
     requestUrl: string,
@@ -32,7 +35,7 @@ export class GraphClient {
     includeJsonContentType = true,
   ) {
     const accessToken = await this.authService.getAccessToken()
-    return fetch(requestUrl, {
+    return this.fetchWithTimeout(requestUrl, {
       ...options,
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -42,6 +45,51 @@ export class GraphClient {
         ...options.headers,
       },
     })
+  }
+
+  private async fetchWithTimeout(
+    requestUrl: string,
+    options: RequestInit = {},
+  ) {
+    const timeoutSignal = AbortSignal.timeout(this.timeoutMs)
+    const signal = options.signal
+      ? AbortSignal.any([options.signal, timeoutSignal])
+      : timeoutSignal
+
+    try {
+      return await fetch(requestUrl, {
+        ...options,
+        signal,
+      })
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (error.name === 'AbortError' || error.name === 'TimeoutError')
+      ) {
+        throw new AppError(
+          'Microsoft Graph took too long to respond. Please try again.',
+          504,
+        )
+      }
+
+      if (error instanceof TypeError) {
+        throw new AppError(
+          'Microsoft Graph could not be reached. Check the connection and try again.',
+          502,
+        )
+      }
+
+      throw error
+    }
+  }
+
+  async requestPublicResponse(
+    requestUrl: string,
+    options: RequestInit = {},
+  ) {
+    const response = await this.fetchWithTimeout(requestUrl, options)
+    await this.assertOk(response, requestUrl, options.method ?? 'GET')
+    return response
   }
 
   private async assertOk(
